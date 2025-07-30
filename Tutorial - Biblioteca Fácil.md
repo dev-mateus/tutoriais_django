@@ -169,6 +169,21 @@ class LivroForm(forms.ModelForm):
         model = Livro
         fields = ['titulo', 'autores', 'resumo', 'ano', 'categoria', 'isbn', 'imagem']
 
+        widgets = {
+            'titulo': forms.TextInput(attrs={'placeholder': 'Título do livro'}),
+            'autores': forms.TextInput(attrs={'placeholder': 'Autor(es)'}),
+            'resumo': forms.Textarea(attrs={'placeholder': 'Resumo do livro'}),
+            'ano': forms.NumberInput(attrs={'placeholder': 'Ano de publicação'}),
+            'categoria': forms.TextInput(attrs={'placeholder': 'Categoria'}),
+            'isbn': forms.TextInput(attrs={'placeholder': 'ISBN'}),
+            'imagem': forms.ClearableFileInput(attrs={'placeholder': 'Imagem da capa'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super(LivroForm, self).__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.label = ''
+
 ```
 **Por que essa etapa é importante?**
 * Facilita a criação de formulários:
@@ -208,6 +223,7 @@ def cadastro(request):
         if form.is_valid():
             form.save()
             return redirect('index')
+        return None
     else:
         form = LivroForm()
         return render(request, 'cadastro.html', {'form': form, 'titulo_pagina': 'Novo Livro'})
@@ -391,26 +407,26 @@ Importante:
 
 ```html
 <!DOCTYPE html>
-<html lang="pt-br"> 
-{% load static %} 
-<head> 
-    <meta charset="UTF-8"> 
-    <title>{{ titulo_pagina }}</title> 
-    <link rel="stylesheet" href="{% static 'css/style.css' %}"> 
-</head> 
-<body> 
-    <header> 
-        <h1>Biblioteca Fácil</h1> 
-        <nav> 
-            <a href="{% url 'index' %}">Início</a> | 
-            <a href="{% url 'cadastro' %}">Cadastro Livro</a> 
-        </nav> 
-    </header> 
-    <main> 
-        {% block content %}{% endblock %} 
-    </main> 
-</body> 
-</html> 
+<html lang="pt-br">
+{% load static %}
+<head>
+    <meta charset="UTF-8">
+    <title>{{ titulo_pagina }}</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <header>
+        <h1>Biblioteca Fácil</h1>
+        <nav>
+            <a href="{% url 'index' %}">Início</a>
+            <a href="{% url 'cadastro' %}">Cadastro Livro</a>
+        </nav>
+    </header>
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>
 ```
 **index.html**
 
@@ -428,7 +444,17 @@ Importante:
 <ul>
   {% for livro in livros %}
     <li>
-        <a href="{% url 'detalhes' livro.id %}">{{ livro.titulo }}</a>
+      <a href="{% url 'detalhes' livro.id %}">
+        {% if livro.imagem %}
+        <img class="img-li-index" src="{{ livro.imagem.url }}" alt="{{ livro.titulo }}">
+        {% else %}
+        <img class="img-li-index" src="media/sem-capa.jpeg">
+        {% endif %}
+        <div>
+          <p><strong>Título:</strong> {{ livro.titulo }}</p>
+          <p><strong>Autor(es):</strong> {{ livro.autores }}</p>
+        </div>
+      </a>
     </li>
   {% empty %}
     <li>Nenhum livro cadastrado.</li>
@@ -449,17 +475,23 @@ Importante:
 {% extends 'base.html' %}
 
 {% block content %}
-<h2>{{ livro.titulo }}</h2>
-<p>Autor(es): {{ livro.autores }}</p>
-<p>Resumo: {{ livro.resumo }}</p>
-<p>Ano: {{ livro.ano }}</p>
-<p>Categoria: {{ livro.categoria }}</p>
-<p>ISBN: {{ livro.isbn }}</p>
-{% if livro.imagem %}
-  <img src="{{ livro.imagem.url }}" alt="{{ livro.titulo }}" style="max-width:300px;">
-{% endif %}
-<a href="{% url 'index' %}">Voltar</a>
-{% endblock %} 
+<div class="div-content-detalhes-main">
+  {% if livro.imagem %}
+  <img class="img-detalhes" src="{{ livro.imagem.url }}" alt="{{ livro.titulo }}">
+  {% endif %}
+  <div class="div-detalhes">
+    <div>
+      <h2>{{ livro.titulo }}</h2>
+      <p>Autor(es): {{ livro.autores }}</p>
+      <p>Resumo: {{ livro.resumo }}</p>
+      <p>Ano: {{ livro.ano }}</p>
+      <p>Categoria: {{ livro.categoria }}</p>
+      <p>ISBN: {{ livro.isbn }}</p>
+    </div>
+    <a href="{% url 'index' %}">Voltar</a>
+  </div>
+</div>
+{% endblock %}
 ```
 
 **cadastro.html**
@@ -474,45 +506,115 @@ Importante:
 {% extends 'base.html' %}
 
 {% block content %}
-<h2>Cadastrar Novo Livro</h2>
-<form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Salvar</button>
-</form>
-{% endblock %} 
+<div class="div-content-cadastro-main">
+    <h2>Cadastrar Novo Livro</h2>
+    <form class="form-cadastro" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Salvar</button>
+    </form>
+</div>
+{% endblock %}
 ```
 
 ### Passo 8.2: Estilizando as páginas com CSS
 Após criar os arquivos HTML, vamos estilizar com o CSS. Em *static/css/style.css* adicione o código abaixo: 
 ```css
-body { 
-    font-family: sans-serif; 
-    margin: 20px; 
-    background-color: #f2f2f2; 
-} 
-header { 
-    background: #444; 
-    color: white; 
-    padding: 15px; 
-} 
-nav a { 
-    color: white; 
-    margin-right: 15px; 
-    text-decoration: none; 
-} 
-main { 
-    background: white; 
-    padding: 20px; 
-    border-radius: 5px; 
-} 
-form { 
-    display: flex; 
-    flex-direction: column; 
-} 
-form input, form textarea, form select { 
-    margin-bottom: 10px; 
-    padding: 8px; 
+body {
+    font-family: sans-serif;
+    margin: 0;
+    background-color: #f2f2f2;
+}
+header {
+    background: #031240;
+    color: white;
+    padding-top: 15px;
+}
+
+nav {
+    background: #1760BF;
+    padding-top: 10px;
+    padding-bottom: 9px
+}
+
+nav a {
+    color: #ffffff;
+    text-decoration: none;
+    padding: 10px;
+}
+
+li {
+    list-style-type: none;
+    background: #f2f2f2;
+    margin: 10px;
+}
+
+li a {
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+}
+
+li img{
+    padding: 10px;
+}
+
+li p {
+    color: #000000;
+}
+
+nav a:hover{
+    background: #104386;
+}
+
+main {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 5px;
+}
+form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+form input, form textarea, form select {
+    padding: 5px;
+    border: 0px;
+    width: 300px;
+    background-color: #BBEAED;
+}
+
+form input, form textarea{}
+
+
+form p{
+    margin: 2px
+}
+
+.img-li-index{
+    max-width:100px;
+}
+
+.img-detalhes{
+    max-width:300px;
+    padding:10px;
+}
+
+.div-content-detalhes-main{
+    display:flex;
+}
+
+.div-detalhes{
+    padding:10px;
+    display:flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.div-content-cadastro-main{
+    display: flex;
+    flex-direction: column;
+    justify-items: center;
 } 
 ```
 
