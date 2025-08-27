@@ -680,3 +680,58 @@ python manage.py runserver
 Esse comando:
 * Inicia o servidor web embutido do Django.
 * Permite acessar a aplicação no navegador, geralmente pelo endereço: http://localhost:8000
+
+## Passo 11: Adicionar a funcionalidade de deletar
+
+Os próximos 3 passos são para adicionar a funcionalidade de deletar um livro selecionado. Só avance para essa etapa se o passo anterior não gerou nenhum erro de execução.
+
+Antes de adicionar a funcionalidade, pare o servidor de desenvolvimento do Django usando as teclas ```Ctrl + C``` no terminal.
+
+Para implementar a funcionalidade de deletar, precisamos realizar 3 configurações:
+* Criar uma função para deletar em views.py
+* Definir uma rota para essa nova função no arquivo urls.py
+* Criar um botão 'Excluir' no template 'detalhes.html'
+
+### Passo 11.1: View de deletar livro
+
+No arquivo 'reserva/views.py', adicione:
+
+```python
+def deletar(request, livro_id):
+    livro = get_object_or_404(Livro, id=livro_id)
+    livro.delete()
+    return redirect('index')
+```
+
+Essa view:
+* Busca o livro pelo id.
+* Deleta o registro do banco de dados.
+* Redireciona para a página inicial após a exclusão.
+
+### Passo 11.2: Rota para deletar livro
+No arquivo reserva/urls.py, adicione:
+```python
+path('livro/<int:livro_id>/deletar/', views.deletar, name='deletar'),
+```
+
+### Passo 11.3: Botão de deletar no template
+No arquivo detalhes.html, adicione um botão para deletar abaixo do link de voltar, com o código abaixo:
+```html
+<form action="{% url 'deletar' livro.id %}" method="post" style="margin-top: 10px;">
+    {% csrf_token %}
+    <button type="submit">Deletar Livro</button>
+</form>
+```
+
+1. Por que usar ```<form>``` para deletar?
+No HTML, ações que modificam dados (como deletar um livro) devem ser feitas por meio de um formulário ````<form>````, pois:
+O navegador só envia requisições POST (ou PUT/DELETE com JavaScript) através de formulários.
+O Django espera que ações que alteram dados venham de um formulário para aplicar medidas de segurança.
+2. Por que usar method="POST"?
+O método POST é usado para ações que modificam o estado do servidor, como criar, atualizar ou deletar dados.
+O Django bloqueia requisições GET que tentam deletar dados, por segurança.
+Usar POST evita que um simples clique em um link (GET) delete algo acidentalmente.
+🛡️ 3. Por que usar {% csrf_token %}?
+O Django exige o uso de CSRF Token (Cross-Site Request Forgery Token) em formulários POST.
+Ele é um código secreto gerado por sessão, que protege contra ataques maliciosos que tentam enviar requisições em nome do usuário sem permissão.
+Sem esse token, o Django recusa a requisição POST com erro 403 (Forbidden).
