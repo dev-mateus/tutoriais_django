@@ -731,7 +731,7 @@ O Django espera que ações que alteram dados venham de um formulário para apli
 O método POST é usado para ações que modificam o estado do servidor, como criar, atualizar ou deletar dados.
 O Django bloqueia requisições GET que tentam deletar dados, por segurança.
 Usar POST evita que um simples clique em um link (GET) delete algo acidentalmente.
-🛡️ 3. Por que usar {% csrf_token %}?
+3. Por que usar {% csrf_token %}?
 O Django exige o uso de CSRF Token (Cross-Site Request Forgery Token) em formulários POST.
 Ele é um código secreto gerado por sessão, que protege contra ataques maliciosos que tentam enviar requisições em nome do usuário sem permissão.
 Sem esse token, o Django recusa a requisição POST com erro 403 (Forbidden).
