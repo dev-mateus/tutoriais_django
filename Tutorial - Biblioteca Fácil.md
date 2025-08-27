@@ -735,3 +735,34 @@ Usar POST evita que um simples clique em um link (GET) delete algo acidentalment
 O Django exige o uso de CSRF Token (Cross-Site Request Forgery Token) em formulários POST.
 Ele é um código secreto gerado por sessão, que protege contra ataques maliciosos que tentam enviar requisições em nome do usuário sem permissão.
 Sem esse token, o Django recusa a requisição POST com erro 403 (Forbidden).
+
+### Passo 11.4: Janela de confirmação no botão 'Deletar Livro'
+
+No template detalhes.html, adicionar na tag ```<form>``` do botão 'Deletar Livro' um evento do Javascript usando o atributo html ```onsubimit```. Segue o código abaixo completo:
+```html
+
+<form action="{% url 'deletar' livro.id %}" method="post" onsubmit="return confirm('Tem certeza que deseja excluir este livro?');">
+    {% csrf_token %}
+    <button type="submit">Deletar Livro</button>
+</form>
+```
+
+Adicionar somente:
+```onsubmit="return confirm('Tem certeza que deseja excluir este livro?');"```
+
+Explicação:
+```onsubmit="return confirm('Tem certeza que deseja excluir este livro?');"```: chama a função ```confirm``` do Javascript antes de enviar o formulário (deletar o livro). Se o usuário clicar em OK, retorna 'true' e o formulário é enviado.
+Se clicar em Cancelar, retorna 'false' e o envio é interrompido.
+### Passo 11.5: Deletar a imagem se houver quando um livro for deletado do banco de dados
+Abra reserva/views.py e adicione a linha indicada abaixo
+
+```python
+def deletar(request, livro_id):
+    livro = get_object_or_404(Livro, id=livro_id)
+    if livro.imagem: # adicionar
+        livro.imagem.delete() # adicionar 
+    livro.delete()
+    return redirect('index')
+
+```
+
