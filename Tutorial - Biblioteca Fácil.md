@@ -683,7 +683,7 @@ Esse comando:
 
 ## Passo 11: Adicionar a funcionalidade de deletar
 
-Os próximos 3 passos são para adicionar a funcionalidade de deletar um livro selecionado. Só avance para essa etapa se o passo anterior não gerou nenhum erro de execução.
+Os próximos 5 passos são para adicionar a funcionalidade de deletar um livro selecionado. Só avance para essa etapa se o passo anterior não gerou nenhum erro de execução.
 
 Antes de adicionar a funcionalidade, pare o servidor de desenvolvimento do Django usando as teclas ```Ctrl + C``` no terminal.
 
@@ -766,3 +766,131 @@ def deletar(request, livro_id):
 
 ```
 
+## Passo 12: Adicionar a funcionalidade de editar
+
+Os próximos 4 passos são para adicionar a funcionalidade de editar um livro selecionado. Só avance para essa etapa se o passo anterior não gerou nenhum erro de execução.
+
+Antes de adicionar a funcionalidade, pare o servidor de desenvolvimento do Django usando as teclas ```Ctrl + C``` no terminal.
+
+Para implementar a funcionalidade de editar, precisamos realizar 3 configurações:
+* Criar uma função para editar em views.py
+* Definir uma rota para essa nova função no arquivo urls.py
+* Criar um botão/link 'Editar' no template 'detalhes.html'
+* Criar um template editar.html
+
+### Passo 12.1: View de editar livro
+
+No arquivo 'reserva/views.py', adicione:
+
+```python
+# adicionar esse import no começo do arquivo
+from django.core.files.storage import default_storage
+
+# ... suas outras views (index, detalhes, cadastro, deletar) ...
+
+def editar(request, livro_id):
+    livro = get_object_or_404(Livro, id=livro_id)
+    old_name = livro.imagem.name if livro.imagem else None
+
+    if request.method == 'POST':
+        form = LivroForm(request.POST, request.FILES, instance=livro)
+        if form.is_valid():
+            novo_arquivo = form.cleaned_data.get('imagem')
+            obj = form.save()
+            if novo_arquivo and old_name and old_name != obj.imagem.name:
+                if default_storage.exists(old_name):
+                    default_storage.delete(old_name)
+
+            return redirect('detalhes', livro_id=obj.id)
+    else:
+        form = LivroForm(instance=livro)
+
+    return render(
+        request,
+        'editar.html',
+        {'form': form, 'livro': livro, 'titulo_pagina': f'Editar: {livro.titulo}'}
+    )
+```
+
+
+
+### Passo 12.2: Rota para editar livro
+No arquivo reserva/urls.py, adicione:
+```python
+path('livro/<int:livro_id>/editar/', views.editar, name='editar'),
+```
+
+### Passo 12.3: Botão/Link de editar no template detalhes
+No arquivo detalhes.html, adicione um botão/Link para editar abaixo do link de voltar, com o código abaixo:
+
+```html
+<a href="{% url 'editar' livro.id %}">Editar</a>
+```
+
+### Passo 12.4: Template editar
+
+Crie um novo arquivo em reserva/templates com o nome de 'editar.html', e adicione o código abaixo:
+
+```html
+{# reserva/templates/editar.html #}
+{% extends 'base.html' %}
+{% block content %}
+<h2>Editar Livro</h2>
+<div class="div-content-detalhes-main">
+  {% if livro.imagem %}
+    <img class="img-detalhes" src="{{ livro.imagem.url }}" alt="{{ livro.titulo }}">
+  {% endif %}
+
+  <form class="form-cadastro" method="post" enctype="multipart/form-data" onsubmit="return confirm('Tem certeza que deseja editar este livro?');">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Salvar alterações</button>
+    <a href="{% url 'detalhes' livro.id %}">Cancelar</a>
+  </form>
+</div>
+{% endblock %}
+```
+
+#### Passo 12.4.1: Alterar o forms
+
+Antes de realizar esse passo, verifica como ficou a tela de edição. Notou que por padrão tem um checkbox e o link da imagem salva?
+Isso vem do widget padrão do Django ClearableFileInput, ele mostra o arquivo atual e um check para limpar.
+
+Para remover esses elementos da tela de edição, faça a alteração em reserva/forms.py sugerida abaixo:
+
+```python
+from django import forms
+from .models import Livro
+
+class LivroForm(forms.ModelForm):
+    class Meta:
+        model = Livro
+        fields = ['titulo', 'autores', 'resumo', 'ano', 'categoria', 'isbn', 'imagem']
+
+        widgets = {
+            'titulo': forms.TextInput(attrs={'placeholder': 'Título do livro'}),
+            'autores': forms.TextInput(attrs={'placeholder': 'Autor(es)'}),
+            'resumo': forms.Textarea(attrs={'placeholder': 'Resumo do livro'}),
+            'ano': forms.NumberInput(attrs={'placeholder': 'Ano de publicação'}),
+            'categoria': forms.TextInput(attrs={'placeholder': 'Categoria'}),
+            'isbn': forms.TextInput(attrs={'placeholder': 'ISBN'}),
+            # 'imagem': forms.ClearableFileInput(attrs={'placeholder': 'Imagem da capa'}), # configuração antiga
+            'imagem': forms.FileInput(attrs={'accept': 'image/*'}), # nova configuração
+        }
+
+    def __init__(self, *args, **kwargs):
+        super(LivroForm, self).__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.label = ''
+
+```
+### Passo 13: Testar as funcionalidades
+
+Agora é hora de executar o servidor de desenvolvimento do Django para validar se todas as funcionalidades implementadas estão funcionando corretamente no navegador.
+No terminal, dentro do diretório do projeto, execute:
+
+```bash
+python manage.py runserver 
+```
+
+Dica: Se ocorrer algum erro, verifique as mensagens exibidas no terminal. Elas indicam exatamente onde está o problema (por exemplo, migrations pendentes, erros de sintaxe ou configurações incorretas).
